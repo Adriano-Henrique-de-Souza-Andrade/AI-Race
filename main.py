@@ -21,6 +21,7 @@ agent_points = 0
 agent_points2 = 0
 epochs = 0
 
+isSaving = False
 load = True
 # Estado é a posição do agente
 state_size = (WIDTH // agent_size) * (HEIGHT // agent_size)
@@ -92,7 +93,8 @@ def reset_agents():
     agent_pos = get_respawn_pos()  # Agente 1 volta para o início
     agent_pos2 = get_respawn_pos()  # Agente 2 volta para o início
     epochs += 1
-    np.save(r'AI-Race\Q_table.npy', Q_table)
+    if isSaving:
+        np.save(r'AI-Race\Q_table.npy', Q_table)
 # Função para verificar se o primeiro agente atingiu o objetivo ou o obstáculo
 def check_collision():
     global agent_pos, agent_pos2, reward, reward2, agent_points
