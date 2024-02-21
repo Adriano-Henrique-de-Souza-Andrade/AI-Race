@@ -21,9 +21,16 @@ agent_points = 0
 agent_points2 = 0
 epochs = 0
 
+load = True
 # Estado é a posição do agente
 state_size = (WIDTH // agent_size) * (HEIGHT // agent_size)
-Q_table = np.zeros((state_size, n_actions))
+
+if load:
+    try:
+        loaded_array = np.load(r'AI-Race\Q_table.npy')
+    except Exception as ex: loaded_array = np.zeros((state_size, n_actions))
+else: loaded_array = np.zeros((state_size, n_actions))
+Q_table = loaded_array
 
 # Fonte para texto
 font = pygame.font.Font(None, 24)
@@ -32,10 +39,10 @@ font = pygame.font.Font(None, 24)
 def pos_to_state(pos):
     return (pos[1] // agent_size) * (WIDTH // agent_size) + (pos[0] // agent_size)
 
-# Atualiza a tabela Q agente 1
 def update_Q_table(state, action, reward, next_state):
     future = np.max(Q_table[next_state])
     Q_table[state, action] += alpha * (reward + gamma * future - Q_table[state, action])
+    print(Q_table)
 
 # Escolhe uma ação usando a política ε-greedy
 def choose_action(state):
@@ -78,11 +85,14 @@ def move_agent2(action):
         agent_pos2[0] += agent_size
 
 
+def get_respawn_pos():
+    return [WIDTH // 4, HEIGHT // 4]
 def reset_agents():
     global agent_pos, agent_pos2, epochs
-    agent_pos = [WIDTH // 4, HEIGHT // 4]  # Agente 1 volta para o início
-    agent_pos2 = [WIDTH // 4, HEIGHT // 4]  # Agente 2 volta para o início
+    agent_pos = get_respawn_pos()  # Agente 1 volta para o início
+    agent_pos2 = get_respawn_pos()  # Agente 2 volta para o início
     epochs += 1
+    np.save(r'AI-Race\Q_table.npy', Q_table)
 # Função para verificar se o primeiro agente atingiu o objetivo ou o obstáculo
 def check_collision():
     global agent_pos, agent_pos2, reward, reward2, agent_points
@@ -95,7 +105,7 @@ def check_collision():
         reset_agents()
     elif agent_pos == obstacle_pos:
         reward = -1  # Penalidade alta por colidir com o obstáculo
-        reset_agents()
+        agent_pos = get_respawn_pos()
     elif agent_pos == agent_pos2:
         reward -= 0.5
     elif distance_to_goal < calculate_distance(agent_pos2, goal_pos):
@@ -114,18 +124,25 @@ def check_collision2():
         reset_agents()
     elif agent_pos2 == obstacle_pos:
         reward2 = -1  # Penalidade alta por colidir com o obstáculo
-        reset_agents()
+        agent_pos2 = get_respawn_pos()
     elif agent_pos2 == agent_pos:
         reward2 -= 0.5
     elif distance_to_goal < calculate_distance(agent_pos, goal_pos):
         reward2 += 0.2
     return reward2
 
+agent_image = pygame.image.load(r"AI-Race\blueMan.png")
+agent_image2 = pygame.image.load(r"AI-Race\OrangeGirl.png")
+agent_image = pygame.transform.scale(agent_image, (agent_size, agent_size))
+agent_image2 = pygame.transform.scale(agent_image2, (agent_size, agent_size))
 # Desenha os elementos do jogo
 def draw_elements():
     screen.fill(WHITE)
-    pygame.draw.rect(screen, BLUE, (*agent_pos, agent_size, agent_size))
-    pygame.draw.rect(screen, ORANGE, (*agent_pos2, agent_size, agent_size))
+    
+    screen.blit(agent_image, agent_pos)
+    screen.blit(agent_image2, agent_pos2)
+    # pygame.draw.rect(screen, BLUE, (*agent_pos, agent_size, agent_size))
+    # pygame.draw.rect(screen, ORANGE, (*agent_pos2, agent_size, agent_size))
     pygame.draw.rect(screen, GREEN, (*goal_pos, agent_size, agent_size))
     pygame.draw.rect(screen, RED, (*obstacle_pos, agent_size, agent_size))
 
@@ -140,8 +157,8 @@ def draw_elements():
     q_values2 = Q_table[state2]
 
     # Mostrar valores Q para o estado atual do primeiro agente
-    epochs_text = font.render(f"Epocas: {epochs}", True, BLACK)
-    screen.blit(epochs_text, (WIDTH - 100, 25))
+    epochs_text = font.render(f"Corridas: {epochs}", True, BLACK)
+    screen.blit(epochs_text, (WIDTH - 125, 25))
 
     q_text2 = font.render(f"Q-values (Laranja): {q_values2}", True, BLACK)
     screen.blit(q_text2, (5, HEIGHT - 30))
