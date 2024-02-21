@@ -21,7 +21,7 @@ agent_points = 0
 agent_points2 = 0
 epochs = 0
 
-isSaving = True
+isSaving = False
 load = True
 # Estado é a posição do agente
 state_size = (WIDTH // agent_size) * (HEIGHT // agent_size)
