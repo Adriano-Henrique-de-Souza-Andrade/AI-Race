@@ -1,6 +1,7 @@
 import pygame
 import random
 import numpy as np
+from menu import draw_menu
 
 # Inicialização do Pygame
 pygame.init()
@@ -18,6 +19,7 @@ alpha = 0.1
 gamma = 0.9
 agent_points = 0
 agent_points2 = 0
+epochs = 0
 
 # Estado é a posição do agente
 state_size = (WIDTH // agent_size) * (HEIGHT // agent_size)
@@ -75,6 +77,12 @@ def move_agent2(action):
     if action == 3 and agent_pos2[0] < WIDTH - agent_size:  # direita
         agent_pos2[0] += agent_size
 
+
+def reset_agents():
+    global agent_pos, agent_pos2, epochs
+    agent_pos = [WIDTH // 4, HEIGHT // 4]  # Agente 1 volta para o início
+    agent_pos2 = [WIDTH // 4, HEIGHT // 4]  # Agente 2 volta para o início
+    epochs += 1
 # Função para verificar se o primeiro agente atingiu o objetivo ou o obstáculo
 def check_collision():
     global agent_pos, agent_pos2, reward, reward2, agent_points
@@ -84,10 +92,10 @@ def check_collision():
         agent_points += 1
         reward = 1  # Recompensa alta por alcançar o objetivo
         reward2 -= 1
-        agent_pos = [WIDTH // 4, HEIGHT // 4]  # Agente 1 volta para o início
-        agent_pos2 = [WIDTH // 4, HEIGHT // 4]  # Agente 2 volta para o início
+        reset_agents()
     elif agent_pos == obstacle_pos:
         reward = -1  # Penalidade alta por colidir com o obstáculo
+        reset_agents()
     elif agent_pos == agent_pos2:
         reward -= 0.5
     elif distance_to_goal < calculate_distance(agent_pos2, goal_pos):
@@ -103,10 +111,10 @@ def check_collision2():
         agent_points2 += 1
         reward2 = 1  # Recompensa alta por alcançar o objetivo
         reward -= 1
-        agent_pos = [WIDTH // 4, HEIGHT // 4]  # Agente 1 volta para o início
-        agent_pos2 = [WIDTH // 4, HEIGHT // 4]  # Agente 2 volta para o início
+        reset_agents()
     elif agent_pos2 == obstacle_pos:
         reward2 = -1  # Penalidade alta por colidir com o obstáculo
+        reset_agents()
     elif agent_pos2 == agent_pos:
         reward2 -= 0.5
     elif distance_to_goal < calculate_distance(agent_pos, goal_pos):
@@ -130,46 +138,67 @@ def draw_elements():
     # Mostrar valores Q para o estado atual do segundo agente
     state2 = pos_to_state(agent_pos2)
     q_values2 = Q_table[state2]
+
+    # Mostrar valores Q para o estado atual do primeiro agente
+    epochs_text = font.render(f"Epocas: {epochs}", True, BLACK)
+    screen.blit(epochs_text, (WIDTH - 100, 25))
+
     q_text2 = font.render(f"Q-values (Laranja): {q_values2}", True, BLACK)
     screen.blit(q_text2, (5, HEIGHT - 30))
 
     # Mostrar valores Q para o estado atual do primeiro agente
     q_text = font.render(f"Vitórias (Azul): {agent_points}", True, BLACK)
     screen.blit(q_text, (5, HEIGHT - 120))
-
+    
     # Mostrar valores Q para o estado atual do segundo agente
     q_text2 = font.render(f"Vitórias (Laranja): {agent_points2}", True, BLACK)
     screen.blit(q_text2, (5, HEIGHT - 90))
 
     pygame.display.flip()
 
+
+def game():
+        # Movimento e atualização do primeiro agente
+        current_state = pos_to_state(agent_pos)
+        action = choose_action(current_state)
+        move_agent(action)
+        reward = check_collision()
+        next_state = pos_to_state(agent_pos)
+        update_Q_table(current_state, action, reward, next_state)
+
+        # Movimento e atualização do segundo agente
+        current_state2 = pos_to_state(agent_pos2)
+        action2 = choose_action(current_state2)
+        move_agent2(action2)
+        reward2 = check_collision2()
+        next_state2 = pos_to_state(agent_pos2)
+        update_Q_table(current_state2, action2, reward2, next_state2)  # Corrigindo o nome da variável next_state2
+
+
+        draw_elements()
 # Loop principal do jogo
 running = True
 clock = pygame.time.Clock()
 
+# Defina a fonte
+title_font = pygame.font.Font(None, 52)
+small_font = pygame.font.Font(None, 26)
+
+state = "menu"
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        if event.type == pygame.MOUSEBUTTONDOWN:    
+            state = "game"
 
-    # Movimento e atualização do primeiro agente
-    current_state = pos_to_state(agent_pos)
-    action = choose_action(current_state)
-    move_agent(action)
-    reward = check_collision()
-    next_state = pos_to_state(agent_pos)
-    update_Q_table(current_state, action, reward, next_state)
+    if(state == "game"):
+        game()
+    
+    if(state == "menu"):
+        draw_menu(title_font, small_font,  WIDTH, HEIGHT ,screen)
 
-    # Movimento e atualização do segundo agente
-    current_state2 = pos_to_state(agent_pos2)
-    action2 = choose_action(current_state2)
-    move_agent2(action2)
-    reward2 = check_collision2()
-    next_state2 = pos_to_state(agent_pos2)
-    update_Q_table(current_state2, action2, reward2, next_state2)  # Corrigindo o nome da variável next_state2
-
-
-    draw_elements()
+    pygame.display.update()
     clock.tick(50)  # Controla a velocidade do jogo
 
 pygame.quit()
